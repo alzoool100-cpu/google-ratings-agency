@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>جمع الميدان — الجبيل البلد</title>
+<link rel="manifest" href="data:application/json,{%22name%22:%22جمع الميدان%22,%22display%22:%22standalone%22,%22start_url%22:%22.%22}">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --gold:#8a6d1d; --gold-light:#f4ecd8; --dark:#1a1a1a; --muted:#777;
+    --green:#3f6b2e; --green-bg:#f5faf3; --red:#8a3a32; --red-bg:#fbf3f2;
+    --border:#e2d8c3;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;
+    background:#faf8f3; color:var(--dark); direction:rtl;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #root{max-width:520px;margin:0 auto;min-height:100vh;background:#fff;box-shadow:0 0 24px rgba(0,0,0,.06);display:flex;flex-direction:column;}
+  input,select,textarea,button{font-family:inherit;font-size:16px;}
+  .topbar{
+    background:var(--gold); color:#fff; padding:14px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:10;
+  }
+  .topbar h1{font-size:16px;margin:0;font-weight:bold;}
+  .topbar .sub{font-size:11px;opacity:.85;}
+  .iconbtn{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;padding:8px 10px;font-size:13px;}
+  .content{flex:1;padding:14px 14px 90px;overflow-y:auto;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;font-weight:600;}
+  .field input[type=text],.field input[type=number],.field input[type=tel],.field select,.field textarea{
+    width:100%; padding:11px 12px; border:1.5px solid #ddd; border-radius:8px; background:#fff;
+  }
+  .field textarea{min-height:70px;resize:vertical;}
+  .toggle-row{display:flex;gap:10px;}
+  .toggle-btn{
+    flex:1; padding:11px; border-radius:8px; border:1.5px solid #ddd; background:#fff;
+    text-align:center; font-size:14px; font-weight:600; color:#555;
+  }
+  .toggle-btn.active{border-color:var(--gold); background:var(--gold-light); color:var(--gold);}
+  .btn{
+    width:100%; padding:13px; border-radius:9px; border:none; font-size:15px; font-weight:bold;
+    background:var(--gold); color:#fff; margin-top:6px;
+  }
+  .btn.secondary{background:#fff;border:1.5px solid var(--gold);color:var(--gold);}
+  .btn.ghost{background:transparent;color:var(--muted);border:1.5px solid #ddd;}
+  .btn:disabled{opacity:.5;}
+  .loc-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--gold-light);color:var(--gold);border:1.5px dashed var(--gold);padding:11px;border-radius:8px;width:100%;font-weight:600;font-size:13.5px;}
+  .loc-ok{font-size:11.5px;color:var(--green);margin-top:5px;}
+  .photo-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .photo-thumb{width:72px;height:72px;border-radius:8px;object-fit:cover;border:1px solid #ddd;}
+  .photo-add{width:72px;height:72px;border-radius:8px;border:1.5px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:24px;color:#aaa;background:#fafafa;}
+  .card{border:1px solid #eee;border-radius:10px;padding:12px 13px;margin-bottom:10px;background:#fff;}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;}
+  .card-name{font-size:15px;font-weight:bold;}
+  .card-meta{font-size:11.5px;color:var(--muted);margin-top:3px;}
+  .badge{font-size:10.5px;padding:3px 8px;border-radius:20px;font-weight:600;white-space:nowrap;}
+  .badge.yes{background:var(--green-bg);color:var(--green);}
+  .badge.no{background:var(--red-bg);color:var(--red);}
+  .search{width:100%;padding:10px 12px;border-radius:20px;border:1.5px solid #ddd;margin-bottom:10px;background:#f7f5ef;}
+  .filters{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;}
+  .chip{flex-shrink:0;padding:6px 12px;border-radius:20px;border:1.5px solid #ddd;font-size:12.5px;color:#555;background:#fff;white-space:nowrap;}
+  .chip.active{background:var(--gold);border-color:var(--gold);color:#fff;}
+  .fab{
+    position:fixed; bottom:22px; left:50%; transform:translateX(calc(-50% + 220px));
+    width:56px;height:56px;border-radius:50%;background:var(--gold);color:#fff;font-size:28px;
+    border:none;box-shadow:0 4px 14px rgba(138,109,29,.4); z-index:20;
+  }
+  @media (max-width:560px){ .fab{ transform:none; left:auto; right:20px; } }
+  .stat-row{display:flex;gap:8px;margin-bottom:14px;}
+  .stat-box{flex:1;background:var(--gold-light);border-radius:10px;padding:10px;text-align:center;}
+  .stat-box .num{font-size:19px;font-weight:bold;color:var(--gold);}
+  .stat-box .lbl{font-size:10.5px;color:#6b5417;margin-top:2px;}
+  .empty{text-align:center;color:var(--muted);font-size:13.5px;padding:50px 20px;}
+  .login-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;padding:30px;}
+  .login-wrap h2{text-align:center;color:var(--dark);margin-bottom:6px;}
+  .login-wrap p{text-align:center;color:var(--muted);font-size:13px;margin-bottom:24px;}
+  .backrow{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .backrow button{background:none;border:none;font-size:20px;color:var(--gold);padding:0;}
+  .detail-photo{width:100%;border-radius:10px;margin-bottom:8px;}
+  .note{background:#fafafa;border-radius:8px;padding:10px;font-size:13px;color:#444;white-space:pre-wrap;}
+  .err{color:var(--red);font-size:13px;text-align:center;margin-top:10px;}
+  .spinner{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+  a.linklike{color:var(--gold);text-decoration:underline;font-size:12.5px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+/* ====== إعداد Supabase — عدّل هذين السطرين ببيانات مشروعك ====== */
+const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+const PHOTOS_BUCKET = "prospect-photos";
+/* ================================================================ */
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const CATEGORIES = ["حلاقين", "جوالات واتصالات", "أخرى"];
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function useAuth() {
+  const [ready, setReady] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => {
+    setAuthed(localStorage.getItem("field_authed") === "1");
+    setReady(true);
+  }, []);
+  return { ready, authed, setAuthed };
+}
+
+function LoginScreen({ onLogin }) {
+  const hasHash = !!localStorage.getItem("field_pw_hash");
+  const [mode] = useState(hasHash ? "login" : "setup");
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [err, setErr] = useState("");
+
+  async function submit() {
+    setErr("");
+    if (mode === "setup") {
+      if (pw.length < 4) { setErr("اختر كلمة مرور 4 أحرف على الأقل"); return; }
+      if (pw !== pw2) { setErr("كلمتا المرور غير متطابقتين"); return; }
+      const h = await sha256(pw);
+      localStorage.setItem("field_pw_hash", h);
+      localStorage.setItem("field_authed", "1");
+      onLogin();
+    } else {
+      const h = await sha256(pw);
+      if (h === localStorage.getItem("field_pw_hash")) {
+        localStorage.setItem("field_authed", "1");
+        onLogin();
+      } else {
+        setErr("كلمة المرور غير صحيحة");
+      }
+    }
+  }
+
+  return (
+    <div className="login-wrap">
+      <h2>جمع الميدان</h2>
+      <p>{mode === "setup" ? "أول استخدام — اختر كلمة مرور لحماية بياناتك على هذا الجهاز" : "أدخل كلمة المرور للمتابعة"}</p>
+      <div className="field">
+        <label>كلمة المرور</label>
+        <input type="password" value={pw} onChange={e => setPw(e.target.value)} />
+      </div>
+      {mode === "setup" && (
+        <div className="field">
+          <label>تأكيد كلمة المرور</label>
+          <input type="password" value={pw2} onChange={e => setPw2(e.target.value)} />
+        </div>
+      )}
+      {err && <div className="err">{err}</div>}
+      <button className="btn" onClick={submit}>{mode === "setup" ? "إنشاء وحفظ" : "دخول"}</button>
+    </div>
+  );
+}
+
+function StatBox({ num, lbl }) {
+  return <div className="stat-box"><div className="num">{num}</div><div className="lbl">{lbl}</div></div>;
+}
+
+function ListScreen({ prospects, loading, onOpen, onAdd, onLogout }) {
+  const [q, setQ] = useState("");
+  const [catFilter, setCatFilter] = useState("الكل");
+  const [mapsFilter, setMapsFilter] = useState("الكل");
+
+  const today = new Date().toDateString();
+  const addedToday = prospects.filter(p => new Date(p.created_at).toDateString() === today).length;
+  const notOnMaps = prospects.filter(p => !p.on_google_maps).length;
+
+  const filtered = prospects.filter(p => {
+    if (q && !p.shop_name.includes(q)) return false;
+    if (catFilter !== "الكل" && p.category !== catFilter) return false;
+    if (mapsFilter === "موجود" && !p.on_google_maps) return false;
+    if (mapsFilter === "غير موجود" && p.on_google_maps) return false;
+    return true;
+  });
+
+  return (
+    <div className="content">
+      <div className="stat-row">
+        <StatBox num={prospects.length} lbl="الإجمالي" />
+        <StatBox num={addedToday} lbl="أُضيف اليوم" />
+        <StatBox num={notOnMaps} lbl="غير موجود بجوجل" />
+      </div>
+
+      <input className="search" placeholder="ابحث باسم المحل..." value={q} onChange={e => setQ(e.target.value)} />
+
+      <div className="filters">
+        {["الكل", ...CATEGORIES].map(c => (
+          <div key={c} className={"chip" + (catFilter === c ? " active" : "")} onClick={() => setCatFilter(c)}>{c}</div>
+        ))}
+      </div>
+      <div className="filters">
+        {["الكل", "موجود", "غير موجود"].map(m => (
+          <div key={m} className={"chip" + (mapsFilter === m ? " active" : "")} onClick={() => setMapsFilter(m)}>
+            {m === "الكل" ? "كل الحالات" : "بجوجل: " + m}
+          </div>
+        ))}
+      </div>
+
+      {loading && <div className="spinner">جاري التحميل...</div>}
+      {!loading && filtered.length === 0 && <div className="empty">لا توجد محلات مطابقة — اضغط + لإضافة أول محل</div>}
+
+      {filtered.map(p => (
+        <div className="card" key={p.id} onClick={() => onOpen(p)}>
+          <div className="card-top">
+            <div>
+              <div className="card-name">{p.shop_name}</div>
+              <div className="card-meta">{p.category} {p.neighborhood ? "· " + p.neighborhood : ""}</div>
+            </div>
+            <span className={"badge " + (p.on_google_maps ? "yes" : "no")}>
+              {p.on_google_maps ? "بجوجل" : "غير موجود"}
+            </span>
+          </div>
+          {p.on_google_maps && (p.rating || p.review_count) && (
+            <div className="card-meta" style={{marginTop:6}}>
+              {p.rating ? "⭐ " + p.rating : ""} {p.review_count ? "· " + p.review_count + " تقييم" : ""}
+              {p.local_rank ? " · الترتيب #" + p.local_rank : ""}
+            </div>
+          )}
+        </div>
+      ))}
+
+      <button className="btn ghost" style={{marginTop:20}} onClick={onLogout}>تسجيل الخروج من هذا الجهاز</button>
+    </div>
+  );
+}
+
+function LocationPicker({ lat, lng, onSet }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  function grab() {
+    setBusy(true); setErr("");
+    navigator.geolocation.getCurrentPosition(
+      pos => { onSet(pos.coords.latitude, pos.coords.longitude); setBusy(false); },
+      e => { setErr("تعذر تحديد الموقع — تأكد من تفعيل صلاحية الموقع"); setBusy(false); },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
+  }
+  return (
+    <div className="field">
+      <label>الموقع الجغرافي (GPS)</label>
+      <button type="button" className="loc-btn" onClick={grab} disabled={busy}>
+        📍 {busy ? "جاري التحديد..." : "حدد موقعي الآن"}
+      </button>
+      {lat && lng && <div className="loc-ok">تم التحديد: {lat.toFixed(5)}, {lng.toFixed(5)}</div>}
+      {err && <div className="err">{err}</div>}
+    </div>
+  );
+}
+
+function PhotoPicker({ files, onFiles }) {
+  const inputRef = useRef();
+  function handleChange(e) {
+    const list = Array.from(e.target.files || []);
+    onFiles([...files, ...list]);
+  }
+  function removeAt(i) {
+    onFiles(files.filter((_, idx) => idx !== i));
+  }
+  return (
+    <div className="field">
+      <label>الصور</label>
+      <div className="photo-row">
+        {files.map((f, i) => (
+          <div key={i} style={{position:"relative"}}>
+            <img className="photo-thumb" src={URL.createObjectURL(f)} />
+            <button type="button" onClick={() => removeAt(i)}
+              style={{position:"absolute",top:-6,right:-6,background:"#8a3a32",color:"#fff",border:"none",borderRadius:"50%",width:20,height:20,fontSize:12,lineHeight:"20px"}}>×</button>
+          </div>
+        ))}
+        <div className="photo-add" onClick={() => inputRef.current.click()}>+</div>
+      </div>
+      <input ref={inputRef} type="file" accept="image/*" capture="environment" multiple
+        style={{display:"none"}} onChange={handleChange} />
+    </div>
+  );
+}
+
+function AddEditScreen({ initial, onSaved, onCancel }) {
+  const [form, setForm] = useState(initial || {
+    shop_name: "", category: CATEGORIES[0], neighborhood: "",
+    on_google_maps: false, maps_url: "", rating: "", review_count: "", local_rank: "",
+    phone: "", notes: "", lat: null, lng: null, photo_urls: []
+  });
+  const [newFiles, setNewFiles] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
+
+  async function save() {
+    if (!form.shop_name.trim()) { setErr("اسم المحل مطلوب"); return; }
+    setSaving(true); setErr("");
+    try {
+      let photoUrls = form.photo_urls || [];
+      for (const file of newFiles) {
+        const path = `${Date.now()}_${Math.random().toString(36).slice(2)}_${file.name}`;
+        const { error: upErr } = await supabase.storage.from(PHOTOS_BUCKET).upload(path, file);
+        if (upErr) throw upErr;
+        const { data } = supabase.storage.from(PHOTOS_BUCKET).getPublicUrl(path);
+        photoUrls.push(data.publicUrl);
+      }
+
+      const payload = {
+        shop_name: form.shop_name.trim(),
+        category: form.category,
+        neighborhood: form.neighborhood || null,
+        on_google_maps: !!form.on_google_maps,
+        maps_url: form.maps_url || null,
+        rating: form.rating === "" ? null : Number(form.rating),
+        review_count: form.review_count === "" ? null : Number(form.review_count),
+        local_rank: form.local_rank === "" ? null : Number(form.local_rank),
+        phone: form.phone || null,
+        notes: form.notes || null,
+        lat: form.lat, lng: form.lng,
+        photo_urls: photoUrls
+      };
+
+      if (form.id) {
+        const { error } = await supabase.from("prospects").update(payload).eq("id", form.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("prospects").insert(payload);
+        if (error) throw error;
+      }
+      onSaved();
+    } catch (e) {
+      setErr("خطأ أثناء الحفظ: " + (e.message || e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="content">
+      <div className="backrow"><button onClick={onCancel}>→</button><b>{form.id ? "تعديل المحل" : "إضافة محل جديد"}</b></div>
+
+      <div className="field">
+        <label>اسم المحل *</label>
+        <input type="text" value={form.shop_name} onChange={e => set("shop_name", e.target.value)} placeholder="مثال: محل الأناقة للحلاقة" />
+      </div>
+
+      <div className="field">
+        <label>الفئة</label>
+        <select value={form.category} onChange={e => set("category", e.target.value)}>
+          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      <div className="field">
+        <label>الحي / الشارع</label>
+        <input type="text" value={form.neighborhood} onChange={e => set("neighborhood", e.target.value)} />
+      </div>
+
+      <LocationPicker lat={form.lat} lng={form.lng} onSet={(lat, lng) => setForm(f => ({ ...f, lat, lng }))} />
+
+      <div className="field">
+        <label>موجود على خرائط جوجل؟</label>
+        <div className="toggle-row">
+          <div className={"toggle-btn" + (form.on_google_maps ? " active" : "")} onClick={() => set("on_google_maps", true)}>نعم</div>
+          <div className={"toggle-btn" + (!form.on_google_maps ? " active" : "")} onClick={() => set("on_google_maps", false)}>غير موجود</div>
+        </div>
+      </div>
+
+      {form.on_google_maps && (
+        <React.Fragment>
+          <div className="field">
+            <label>رابط ملف الخرائط</label>
+            <input type="text" value={form.maps_url} onChange={e => set("maps_url", e.target.value)} placeholder="https://maps.google.com/..." />
+          </div>
+          <div style={{display:"flex",gap:10}}>
+            <div className="field" style={{flex:1}}>
+              <label>متوسط التقييم</label>
+              <input type="number" step="0.1" value={form.rating} onChange={e => set("rating", e.target.value)} />
+            </div>
+            <div className="field" style={{flex:1}}>
+              <label>عدد التقييمات</label>
+              <input type="number" value={form.review_count} onChange={e => set("review_count", e.target.value)} />
+            </div>
+            <div className="field" style={{flex:1}}>
+              <label>الترتيب المحلي</label>
+              <input type="number" value={form.local_rank} onChange={e => set("local_rank", e.target.value)} />
+            </div>
+          </div>
+        </React.Fragment>
+      )}
+
+      <div className="field">
+        <label>رقم التواصل</label>
+        <input type="tel" value={form.phone} onChange={e => set("phone", e.target.value)} />
+      </div>
+
+      <PhotoPicker files={newFiles} onFiles={setNewFiles} />
+      {form.photo_urls && form.photo_urls.length > 0 && (
+        <div className="photo-row">
+          {form.photo_urls.map((u, i) => <img key={i} className="photo-thumb" src={u} />)}
+        </div>
+      )}
+
+      <div className="field">
+        <label>ملاحظات ميدانية</label>
+        <textarea value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="أي ملاحظة سريعة أثناء المرور بالشارع..." />
+      </div>
+
+      {err && <div className="err">{err}</div>}
+      <button className="btn" onClick={save} disabled={saving}>{saving ? "جاري الحفظ..." : "حفظ"}</button>
+      <button className="btn ghost" onClick={onCancel}>إلغاء</button>
+    </div>
+  );
+}
+
+function DetailScreen({ prospect, onEdit, onDelete, onBack }) {
+  return (
+    <div className="content">
+      <div className="backrow"><button onClick={onBack}>→</button><b>{prospect.shop_name}</b></div>
+
+      <div className="card">
+        <div className="card-meta">الفئة: {prospect.category}</div>
+        {prospect.neighborhood && <div className="card-meta">الحي: {prospect.neighborhood}</div>}
+        {prospect.phone && <div className="card-meta">الجوال: {prospect.phone}</div>}
+        <div className="card-meta" style={{marginTop:6}}>
+          <span className={"badge " + (prospect.on_google_maps ? "yes" : "no")}>
+            {prospect.on_google_maps ? "موجود بخرائط جوجل" : "غير موجود بخرائط جوجل"}
+          </span>
+        </div>
+        {prospect.on_google_maps && (
+          <div className="card-meta" style={{marginTop:6}}>
+            {prospect.rating ? "⭐ " + prospect.rating + " " : ""}
+            {prospect.review_count ? "· " + prospect.review_count + " تقييم " : ""}
+            {prospect.local_rank ? "· الترتيب #" + prospect.local_rank : ""}
+          </div>
+        )}
+        {prospect.maps_url && <div style={{marginTop:8}}><a className="linklike" href={prospect.maps_url} target="_blank">فتح ملف الخرائط ↗</a></div>}
+        {(prospect.lat && prospect.lng) && (
+          <div style={{marginTop:8}}>
+            <a className="linklike" target="_blank"
+              href={`https://www.google.com/maps?q=${prospect.lat},${prospect.lng}`}>
+              فتح الموقع المسجّل بالخريطة ↗
+            </a>
+          </div>
+        )}
+      </div>
+
+      {prospect.notes && (
+        <div className="field">
+          <label>الملاحظات</label>
+          <div className="note">{prospect.notes}</div>
+        </div>
+      )}
+
+      {prospect.photo_urls && prospect.photo_urls.length > 0 && (
+        <div className="field">
+          <label>الصور</label>
+          {prospect.photo_urls.map((u, i) => <img key={i} className="detail-photo" src={u} />)}
+        </div>
+      )}
+
+      <button className="btn secondary" onClick={() => onEdit(prospect)}>تعديل</button>
+      <button className="btn ghost" onClick={() => onDelete(prospect)}>حذف</button>
+    </div>
+  );
+}
+
+function App() {
+  const { ready, authed, setAuthed } = useAuth();
+  const [prospects, setProspects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState({ screen: "list" });
+
+  async function load() {
+    setLoading(true);
+    const { data, error } = await supabase.from("prospects").select("*").order("created_at", { ascending: false });
+    if (!error) setProspects(data || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { if (authed) load(); }, [authed]);
+
+  if (!ready) return null;
+  if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />;
+
+  return (
+    <React.Fragment>
+      <div className="topbar">
+        <div>
+          <h1>جمع الميدان</h1>
+          <div className="sub">الجبيل البلد</div>
+        </div>
+        {view.screen === "list" && <button className="iconbtn" onClick={load}>تحديث</button>}
+      </div>
+
+      {view.screen === "list" && (
+        <ListScreen
+          prospects={prospects} loading={loading}
+          onOpen={p => setView({ screen: "detail", item: p })}
+          onLogout={() => { localStorage.removeItem("field_authed"); setAuthed(false); }}
+        />
+      )}
+
+      {view.screen === "add" && (
+        <AddEditScreen
+          initial={view.item}
+          onSaved={() => { load(); setView({ screen: "list" }); }}
+          onCancel={() => setView({ screen: "list" })}
+        />
+      )}
+
+      {view.screen === "detail" && (
+        <DetailScreen
+          prospect={view.item}
+          onEdit={p => setView({ screen: "add", item: p })}
+          onBack={() => setView({ screen: "list" })}
+          onDelete={async p => {
+            if (!confirm("تأكيد حذف " + p.shop_name + "؟")) return;
+            await supabase.from("prospects").delete().eq("id", p.id);
+            load(); setView({ screen: "list" });
+          }}
+        />
+      )}
+
+      {view.screen === "list" && (
+        <button className="fab" onClick={() => setView({ screen: "add" })}>+</button>
+      )}
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
