@@ -123,7 +123,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const PHOTOS_BUCKET = "prospect-photos";
 /* ================================================================ */
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const CATEGORIES = ["حلاقين", "جوالات واتصالات", "أخرى"];
 
@@ -331,9 +331,9 @@ function AddEditScreen({ initial, onSaved, onCancel }) {
       let photoUrls = form.photo_urls || [];
       for (const file of newFiles) {
         const path = `${Date.now()}_${Math.random().toString(36).slice(2)}_${file.name}`;
-        const { error: upErr } = await supabase.storage.from(PHOTOS_BUCKET).upload(path, file);
+        const { error: upErr } = await db.storage.from(PHOTOS_BUCKET).upload(path, file);
         if (upErr) throw upErr;
-        const { data } = supabase.storage.from(PHOTOS_BUCKET).getPublicUrl(path);
+        const { data } = db.storage.from(PHOTOS_BUCKET).getPublicUrl(path);
         photoUrls.push(data.publicUrl);
       }
 
@@ -353,10 +353,10 @@ function AddEditScreen({ initial, onSaved, onCancel }) {
       };
 
       if (form.id) {
-        const { error } = await supabase.from("prospects").update(payload).eq("id", form.id);
+        const { error } = await db.from("prospects").update(payload).eq("id", form.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("prospects").insert(payload);
+        const { error } = await db.from("prospects").insert(payload);
         if (error) throw error;
       }
       onSaved();
@@ -505,7 +505,7 @@ function App() {
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase.from("prospects").select("*").order("created_at", { ascending: false });
+    const { data, error } = await db.from("prospects").select("*").order("created_at", { ascending: false });
     if (!error) setProspects(data || []);
     setLoading(false);
   }
@@ -548,7 +548,7 @@ function App() {
           onBack={() => setView({ screen: "list" })}
           onDelete={async p => {
             if (!confirm("تأكيد حذف " + p.shop_name + "؟")) return;
-            await supabase.from("prospects").delete().eq("id", p.id);
+            await db.from("prospects").delete().eq("id", p.id);
             load(); setView({ screen: "list" });
           }}
         />
