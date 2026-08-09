@@ -5,6 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>جمع الميدان — الجبيل البلد</title>
 <link rel="manifest" href="data:application/json,{%22name%22:%22جمع الميدان%22,%22display%22:%22standalone%22,%22start_url%22:%22.%22}">
+<script>
+  function showFatalError(title, detail) {
+    document.addEventListener("DOMContentLoaded", render);
+    if (document.readyState !== "loading") render();
+    function render() {
+      if (document.getElementById("fatal-error-box")) return;
+      var box = document.createElement("div");
+      box.id = "fatal-error-box";
+      box.style.cssText = "direction:ltr;text-align:left;font-family:monospace;font-size:13px;white-space:pre-wrap;padding:16px;margin:10px;background:#fbf3f2;color:#8a3a32;border:2px solid #c0392b;border-radius:8px;word-break:break-word;";
+      box.textContent = title + "\n\n" + detail;
+      document.body.appendChild(box);
+    }
+  }
+  window.addEventListener("error", function (e) {
+    showFatalError("خطأ (error): " + (e.message || ""), (e.filename || "") + ":" + (e.lineno || "") + ":" + (e.colno || "") + "\n" + (e.error && e.error.stack ? e.error.stack : ""));
+  });
+  window.addEventListener("unhandledrejection", function (e) {
+    var r = e.reason;
+    showFatalError("خطأ غير معالج (unhandledrejection):", (r && (r.stack || r.message)) || String(r));
+  });
+</script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
